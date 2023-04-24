@@ -4,20 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loja de games</title>
+    <h2>Login</h2>
+    <input type="text" name="email" id="email" placeholder="victordevtb@gmail.com"><br>
+    <input type="password" name="password" id="password" placeholder="nodejs<3"> 
+    <button onclick="login()">Entrar</button>
+
     <hr>
     <h4>Lista de games</h4>
     <button type="button" onclick="window.location.reload()">Atualizar</button>
     <ul id="games"></ul>
     <hr>
-    <h4>Novo game</h4>  <!--cadastro de games-->
+    <h4>Novo game</h4>
     <input type="text" name="title" id="title" placeholder="Título"><br>
     <input type="number" name="year" id="year" placeholder="Ano"><br>
     <input type="number" name="price" id="price" placeholder="Preço"><br>
-    <!--chamar a função criada ao clicar no botão-->
-    <button type="button" onclick="createGame()">Criar</button> 
+    <button type="button" onclick="createGame()">Criar</button>
     <hr>
-    <h4>Editar game</h4> <!--editar um game-->
-    <input type="text" name="idEdit" id="idEdit" placeholder="ID" readonly><br> <!--readonly = leitura-->
+    <h4>Editar game</h4>
+    <input type="text" name="idEdit" id="idEdit" placeholder="ID" readonly><br>
     <input type="text" name="titleEdit" id="titleEdit" placeholder="Título"><br>
     <input type="number" name="yearEdit" id="yearEdit" placeholder="Ano"><br>
     <input type="number" name="priceEdit" id="priceEdit" placeholder="Preço"><br>
@@ -27,24 +31,53 @@
 <body>
     
 </body>
-<!--Intalação do axios-->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> 
-<script>  
-    //função que coleta dados dos inputs do Novo Game
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    
+    function login(){ 
+    //pega os valores de login e senha e extrai para as variáveis 
+    //e fazer uma requisição para a rota de autenticação da api
+        var emailField = document.getElementById("email");
+        var passwordField = document.getElementById("password");
+
+        var email = emailField.value;
+        var password = passwordField.value;
+
+        axios.post("http://localhost:45678/auth",{  //passar os dois campos
+            email,
+            password
+        }).then(res => {
+            //extrair o token da res dinamicamente
+            var token = res.data.token;
+            //armazenar o token no JS = armazenar dados de forma persistentes no navegador
+            //só é deletado quando desinstala o navegador ou limpa o cache
+            localStorage.setItem("token", token);
+            //recarregada toda vez que que fizer login = dinamicamente
+            axiosConfig.headers.Authorization = "Bearer " + localStorage.getItem("token");
+        }).catch(err => {
+            alert("Login errado!")
+        })
+    }
+
+    //só é carregada quando inicia a api  (uma vez)
+    var axiosConfig = { //objeto de configuração de cabeçalho pra requisição que o axios vai fazer
+        headers: {  //sempre que inicializar minha api ele puxa o token 
+            Authorization: "Bearer " + localStorage.getItem("token")
+        }
+    }
+
     function createGame(){
         var titleInput = document.getElementById("title");
         var yearInput = document.getElementById("year");
         var priceInput = document.getElementById("price");
 
-    //Jason exibido no frontend
         var game = {
             title: titleInput.value,
             year: yearInput.value,
             price: priceInput.value
         }
 
-    //Enviar dados para o frontend
-        axios.post("http://localhost:45678/game",game).then(response => {
+        axios.post("http://localhost:45678/game",game, axiosConfig).then(response => {
             if(response.status == 200){
                 alert("Game cadastrado!")
             }
@@ -53,28 +86,27 @@
         });
     }
 
-    //Deletar dados 
     function deleteGame(listItem){
         var id = listItem.getAttribute("data-id");
-        axios.delete("http://localhost:45678/game/"+id).then(response => {
+        axios.delete("http://localhost:45678/game/"+id,axiosConfig).then(response => {
             alert("Game deletado!")
         }).catch(err => {
             console.log(err);
         });
     }
-    //editando games
-    function loadForm(listItem){ //puxar as informações
+
+    function loadForm(listItem){
         var id = listItem.getAttribute("data-id");
         var title = listItem.getAttribute("data-title");
         var year = listItem.getAttribute("data-year");
         var price = listItem.getAttribute("data-price");
-        document.getElementById("idEdit").value = id; //carregando os campos
+        document.getElementById("idEdit").value = id;
         document.getElementById("titleEdit").value = title;
         document.getElementById("yearEdit").value = year;
         document.getElementById("priceEdit").value = price;
     }
 
-    function updateGame(){ //após editar, enviar para o backend
+    function updateGame(){
 
         var idInput = document.getElementById("idEdit")
         var titleInput = document.getElementById("titleEdit");
@@ -89,7 +121,7 @@
 
         var id = idInput.value;
 
-        axios.put("http://localhost:45678/game/"+id,game).then(response => {
+        axios.put("http://localhost:45678/game/"+id,game, axiosConfig).then(response => {
             if(response.status == 200){
                 alert("Game atualizado!!")
             }
@@ -99,40 +131,38 @@
 
     }
 
-//Operação de leitura //Requisição através do axios para o endpoint /games
-//Usar o mesmo método http para a api que quer usar
-//Toda Promisse tem then e cacth
-    axios.get("http://localhost:45678/games").then(response => {
-        var games = response.data;   //array de games
-        var list = document.getElementById("games");  //pegar a lista da ul para ser manipulada
+
+    axios.get("http://localhost:45678/games", axiosConfig).then(response => { //uso do objeto token
+        var games = response.data;
+        var list = document.getElementById("games");
 
         games.forEach(game => {
-            var item = document.createElement("li"); //criar um elemento = li
-        //inserir atributo HTML customizado via JS
+            var item = document.createElement("li");
+
             item.setAttribute("data-id",game.id);
             item.setAttribute("data-title",game.title);
             item.setAttribute("data-year",game.year);
             item.setAttribute("data-price",game.price);
 
-            item.innerHTML = game.id + " - " + game.title + " - $" + game.price; //as informações dos games que serão exibidas
+            item.innerHTML = game.id + " - " + game.title + " - $" + game.price;
 
-            var deleteBtn = document.createElement("button"); //criação do botão para cada elemento (dinâmico)
-            deleteBtn.innerHTML = "Deletar"; //escrita do botão
-            deleteBtn.addEventListener("click",function(){  //ao clicar chama a função de delete
+            var deleteBtn = document.createElement("button");
+            deleteBtn.innerHTML = "Deletar";
+            deleteBtn.addEventListener("click",function(){
                 deleteGame(item)
             })
 
-            var editBtn = document.createElement("button"); //botão dinâmico
+            var editBtn = document.createElement("button");
             editBtn.innerHTML = "Editar";
             editBtn.addEventListener("click",function(){
                 loadForm(item);
             });
 
 
-            item.appendChild(deleteBtn); //colocando o botão no elemento da lista
+            item.appendChild(deleteBtn);
             item.appendChild(editBtn);
 
-            list.appendChild(item); //add o item a lista
+            list.appendChild(item);
         });
 
     }).catch(error => {
