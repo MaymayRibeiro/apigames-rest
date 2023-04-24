@@ -62,7 +62,7 @@ var DB = {                 //banco de dados falso
         {
             id: 1,
             name: "Victor Lima",
-            email: "victordevtb@guiadoprogramador.com",
+            email: "victordevtb@gmail.com",
             password: "nodejs<3"
         },
         {
